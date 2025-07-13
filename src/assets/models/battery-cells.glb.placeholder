@@ -1,0 +1,27 @@
+# Placeholder for battery-cells.glb
+
+This is a placeholder file. Replace this with your actual battery cells 3D model.
+
+## Instructions:
+1. Export your battery cells 3D model as a GLB file
+2. Name it exactly: battery-cells.glb
+3. Replace this file with your GLB file
+4. The app will automatically detect and load your model
+
+## Model Specifications:
+- Should show individual battery cells or battery pack structure
+- Recommended to show cell arrangement and connections
+- Can include thermal indicators, voltage levels, or cell status
+- Should be optimized for mobile rendering (low poly count)
+
+## Battery Features to Consider:
+- Individual cell voltages (31 cell groups)
+- Temperature indicators for hot spots
+- Charging/discharging animation states
+- Battery health visualization
+- Safety system indicators (BPS faults)
+
+## Current Status: 
+- Placeholder active
+- Battery 3D model ready for integration!
+- Animated battery icon with real telemetry data
