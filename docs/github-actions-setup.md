@@ -73,7 +73,7 @@ npx expo whoami
 ```bash
 # Test the same commands that run in CI
 npm ci
-npx expo doctor
+npx expo-doctor
 npx expo export --platform all --dev
 ```
 

@@ -48,7 +48,7 @@ jobs:
         fi
     
     - name: Setup Expo CLI
-      run: npm install -g @expo/cli
+      run: npm install -g @expo/cli expo-doctor
     
     - name: Check Expo configuration
       run: npx expo config --type prebuild
@@ -153,7 +153,7 @@ jobs:
       run: npm ci
     
     - name: Setup Expo CLI
-      run: npm install -g @expo/cli
+      run: npm install -g @expo/cli expo-doctor
     
     - name: Validate Expo configuration
       run: |
@@ -163,7 +163,7 @@ jobs:
     - name: Check for Expo SDK compatibility
       run: |
         # Verify all dependencies are compatible with current Expo SDK
-        npx expo doctor
+        npx expo-doctor
     
     - name: Validate Metro configuration
       run: |

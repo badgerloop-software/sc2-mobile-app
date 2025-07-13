@@ -25,43 +25,17 @@ The app is designed to support animatable 3D models, including detailed models o
 
 ## Screenshots
 
-<div style="overflow-x: auto; white-space: nowrap; padding: 10px 0;">
-  <div style="display: inline-block; margin-right: 20px; text-align: center; vertical-align: top;">
-    <img src="assets/screenshots/dashboard.jpeg" width="250" alt="Dashboard" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <br>
-    <strong>Dashboard (1/5)</strong>
-    <br>
-    <em>Main telemetry overview with key metrics and alerts</em>
-  </div>
-  <div style="display: inline-block; margin-right: 20px; text-align: center; vertical-align: top;">
-    <img src="assets/screenshots/system-telemetry.jpeg" width="250" alt="Systems" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <br>
-    <strong>Systems (2/5)</strong>
-    <br>
-    <em>Detailed system telemetry and signal monitoring</em>
-  </div>
-  <div style="display: inline-block; margin-right: 20px; text-align: center; vertical-align: top;">
-    <img src="assets/screenshots/battery-system.jpeg" width="250" alt="Battery" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <br>
-    <strong>Battery (3/5)</strong>
-    <br>
-    <em>Battery pack monitoring with cell voltages and health status</em>
-  </div>
-  <div style="display: inline-block; margin-right: 20px; text-align: center; vertical-align: top;">
-    <img src="assets/screenshots/environmental-monitoring.jpeg" width="250" alt="Environmental" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <br>
-    <strong>Environmental (4/5)</strong>
-    <br>
-    <em>Environmental data, weather, and location tracking</em>
-  </div>
-  <div style="display: inline-block; text-align: center; vertical-align: top;">
-    <img src="assets/screenshots/settings.jpeg" width="250" alt="Settings" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <br>
-    <strong>Settings (5/5)</strong>
-    <br>
-    <em>User preferences and configuration options</em>
-  </div>
-</div>
+| Dashboard | Systems | Battery |
+|-----------|---------|---------|
+| <img src="assets/screenshots/dashboard.jpeg" width="250" alt="Dashboard"> | <img src="assets/screenshots/system-telemetry.jpeg" width="250" alt="Systems"> | <img src="assets/screenshots/battery-system.jpeg" width="250" alt="Battery"> |
+| **Dashboard (1/5)** | **Systems (2/5)** | **Battery (3/5)** |
+| Main telemetry overview with key metrics and alerts | Detailed system telemetry and signal monitoring | Battery pack monitoring with cell voltages and health status |
+
+| Environmental | Settings |
+|---------------|----------|
+| <img src="assets/screenshots/environmental-monitoring.jpeg" width="250" alt="Environmental"> | <img src="assets/screenshots/settings.jpeg" width="250" alt="Settings"> |
+| **Environmental (4/5)** | **Settings (5/5)** |
+| Environmental data, weather, and location tracking | User preferences and configuration options |
 
 ## Quick Start
 
@@ -158,7 +132,7 @@ The app currently uses mock telemetry data from `src/data/telemetryData.js`. To 
 ```bash
 # Run build check
 npm ci
-npx expo doctor
+npx expo-doctor
 npx expo export --platform all --dev
 
 # Check for issues

@@ -186,7 +186,7 @@ This project includes automated build checking via GitHub Actions:
    ```bash
    # Test build check commands
    npm ci
-   npx expo doctor
+   npx expo-doctor
    npx expo export --platform all --dev
    ```
 

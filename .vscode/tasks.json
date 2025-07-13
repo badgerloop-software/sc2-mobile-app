@@ -40,7 +40,7 @@
 		{
 			"label": "Expo Doctor",
 			"type": "shell",
-			"command": "npx expo doctor",
+			"command": "npx expo-doctor",
 			"group": "test",
 			"isBackground": false,
 			"problemMatcher": [],

@@ -28,13 +28,13 @@ jobs:
       continue-on-error: true
     
     - name: 🏗 Setup Expo CLI
-      run: npm install -g @expo/cli eas-cli
+      run: npm install -g @expo/cli eas-cli expo-doctor
     
     - name: ⚙️ Validate Expo configuration
       run: npx expo config --type public
     
     - name: 🔍 Run Expo Doctor
-      run: npx expo doctor
+      run: npx expo-doctor
     
     - name: 📱 Test Metro bundler
       run: |
