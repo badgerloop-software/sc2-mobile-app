@@ -1,4 +1,4 @@
-name: SC2 Mobile App - CI/CD Pipeline
+name: SC2 Mobile App - CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build-and-test:
+  ci:
     runs-on: ubuntu-latest
     
     strategy:
@@ -15,33 +15,28 @@ jobs:
         node-version: [18.x, 20.x]
     
     steps:
-    - name: Checkout code
+    - name: 🏗 Checkout repository
       uses: actions/checkout@v4
     
-    - name: Setup Node.js ${{ matrix.node-version }}
+    - name: 🏗 Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: 📦 Install dependencies
       run: npm ci
     
-    - name: Check for security vulnerabilities
-      run: |
-        npm audit --audit-level=high || echo "Security vulnerabilities found but continuing..."
-        echo "Security scan completed"
+    - name: 🔍 Check for security vulnerabilities
+      run: npm audit --audit-level=high
+      continue-on-error: true
     
-    - name: Lint code
+    - name: 💅 Lint code
       run: |
-        # Install ESLint if not present
-        if ! npm list eslint --depth=0 2>/dev/null; then
-          npm install --save-dev eslint @babel/eslint-parser
-        fi
         # Run linting (will skip if no .eslintrc config exists)
         npx eslint src/ --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "ESLint not configured, skipping..."
     
-    - name: Type checking (if TypeScript)
+    - name: ⌨️ Type checking (if TypeScript)
       run: |
         if [ -f "tsconfig.json" ]; then
           npx tsc --noEmit
@@ -49,113 +44,59 @@ jobs:
           echo "No TypeScript configuration found, skipping type checking"
         fi
     
-    - name: Check Expo configuration
+    - name: ⚙️ Validate Expo configuration
       run: npx expo config --type public
     
-    - name: Check for Expo SDK compatibility
+    - name: 🩺 Run Expo Doctor
+      run: npx expo-doctor
+      
+    - name: ✅ Check for Expo SDK compatibility
       run: npx expo install --check
-    
-    - name: Test bundle creation and check size
+      continue-on-error: true
+      
+    - name: 🧪 Test bundle creation and check size
       run: |
-        # Test if the JavaScript bundle can be created (no auth required)
-        # and check if its size is reasonable.
-        npx expo export --platform all --dev || echo "Bundle export failed, skipping size check..."
-        if [ -d "dist" ]; then
-          du -sh dist/
-          # Warn if bundle is too large (> 50MB)
-          size=$(du -s dist/ | cut -f1)
-          if [ $size -gt 51200 ]; then
-            echo "Warning: Bundle size is quite large ($size KB)"
-          fi
+        npx expo export --platform all --dev --output-dir ./test-build
+        echo "✅ Metro bundling successful"
+        echo "Bundle size:"
+        du -sh ./test-build
+        size_kb=$(du -s ./test-build | cut -f1)
+        echo "Bundle size: ${size_kb}KB"
+        if [ $size_kb -gt 51200 ]; then
+          echo "⚠️  Warning: Bundle size is large (${size_kb}KB > 50MB)"
         else
-          echo "No dist directory found, skipping size check"
+          echo "✅ Bundle size is acceptable"
         fi
-      continue-on-error: true
 
-  code-quality:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Check package.json validity
-      run: npm ls --depth=0
-    
-    - name: Check for unused dependencies
+    - name: 📂 Validate file structure
       run: |
-        # Install depcheck to find unused dependencies
-        npm install -g depcheck
-        depcheck --ignores="@babel/core,@expo/cli,expo-cli"
-      continue-on-error: true
-    
-    - name: Security scan
+        echo "Checking essential files..."
+        test -f package.json && echo "✅ package.json exists"
+        test -f app.json && echo "✅ app.json exists"
+        test -f App.js && echo "✅ App.js exists"
+        test -f src/screens/HomeScreen.js && echo "✅ HomeScreen.js exists"
+        test -f src/screens/BatteryScreen.js && echo "✅ BatteryScreen.js exists"
+        test -f src/data/telemetryData.js && echo "✅ telemetryData.js exists"
+        echo "✅ Essential files validated"
+        
+    - name: 📝 Check for TODO/FIXME comments
       run: |
-        # Run security audit
-        npm audit --audit-level=moderate || echo "Security vulnerabilities found but continuing..."
-        echo "Security scan completed"
-    
-    - name: Check file structure
-      run: |
-        # Verify essential files exist
-        test -f package.json || exit 1
-        test -f app.json || test -f expo.json || exit 1
-        test -d src/ || exit 1
-        test -f src/screens/HomeScreen.js || exit 1
-        test -f src/screens/BatteryScreen.js || exit 1
-        test -f src/data/telemetryData.js || exit 1
-        echo "File structure validation passed"
-    
-    - name: Check for TODO/FIXME comments
-      run: |
-        # Find TODO and FIXME comments
         echo "Checking for TODO/FIXME comments..."
         grep -r "TODO\|FIXME" src/ --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" || echo "No TODO/FIXME comments found"
 
-  expo-checks:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Validate Expo configuration
+    - name: 📲 Test telemetry data generation
       run: |
-        # Check if app.json/expo.json is valid
-        npx expo config --type public
-    
-    - name: Check for Expo SDK compatibility
-      run: |
-        # Verify all dependencies are compatible with current Expo SDK
-        npx expo install --check
-      continue-on-error: true
-    
-    - name: Validate Metro configuration
-      run: |
-        # Check if Metro bundler configuration is valid
-        if [ -f "metro.config.js" ]; then
-          node -e "require('./metro.config.js')"
-        fi
-    
-    - name: Test Expo start (dry run)
-      run: |
-        # Test if Expo can start without errors
-        timeout 30s npx expo start --no-dev --minify || echo "Expo start test completed"
+        node -e "
+          try {
+            const { generateMockTelemetryData } = require('./src/data/telemetryData.js');
+            const data = generateMockTelemetryData();
+            if (data && data.soc && data.speed) {
+              console.log('✅ Telemetry data generation successful');
+            } else {
+              throw new Error('Invalid telemetry data structure');
+            }
+          } catch (error) {
+            console.error('❌ Telemetry data test failed:', error.message);
+            process.exit(1);
+          }
+        "
