@@ -86,17 +86,20 @@ jobs:
 
     - name: 📲 Test telemetry data generation
       run: |
-        node -e "
-          try {
-            const { generateMockTelemetryData } = require('./src/data/telemetryData.js');
-            const data = generateMockTelemetryData();
-            if (data && data.soc && data.speed) {
-              console.log('✅ Telemetry data generation successful');
-            } else {
-              throw new Error('Invalid telemetry data structure');
-            }
-          } catch (error) {
-            console.error('❌ Telemetry data test failed:', error.message);
-            process.exit(1);
+        # Create a temporary test file to handle ES module import
+        echo "import { generateMockTelemetryData } from './src/data/telemetryData.js';
+        try {
+          const data = generateMockTelemetryData();
+          if (data && data.soc && data.speed) {
+            console.log('✅ Telemetry data generation successful');
+            process.exit(0);
+          } else {
+            throw new Error('Invalid telemetry data structure');
           }
-        "
+        } catch (error) {
+          console.error('❌ Telemetry data test failed:', error.message);
+          process.exit(1);
+        }" > telemetry-test.mjs
+
+        # Run the test file with Node.js
+        node telemetry-test.mjs
