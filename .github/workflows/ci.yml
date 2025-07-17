@@ -49,24 +49,16 @@ jobs:
           echo "No TypeScript configuration found, skipping type checking"
         fi
     
-    - name: Setup Expo CLI
-      run: npm install -g @expo/cli
-    
     - name: Check Expo configuration
       run: npx expo config --type public
     
     - name: Check for Expo SDK compatibility
       run: npx expo install --check
     
-    - name: Test bundle creation
+    - name: Test bundle creation and check size
       run: |
         # Test if the JavaScript bundle can be created (no auth required)
-        npx expo export --platform all --dev || echo "Bundle creation failed, continuing..."
-      continue-on-error: true
-    
-    - name: Check bundle size
-      run: |
-        # Check if bundle size is reasonable
+        # and check if its size is reasonable.
         npx expo export --platform all --dev || echo "Bundle export failed, skipping size check..."
         if [ -d "dist" ]; then
           du -sh dist/
@@ -144,9 +136,6 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
-    
-    - name: Setup Expo CLI
-      run: npm install -g @expo/cli
     
     - name: Validate Expo configuration
       run: |
