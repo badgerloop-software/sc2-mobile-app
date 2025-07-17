@@ -1,152 +1,52 @@
-name: SC2 Mobile App - EAS Build
+name: EAS Build
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform to build for'
+        description: 'Platform to build'
         required: true
         default: 'all'
         type: choice
         options:
-        - ios
-        - android
-        - all
+          - all
+          - android
+          - ios
       profile:
         description: 'Build profile'
         required: true
         default: 'preview'
         type: choice
         options:
-        - development
-        - preview
-        - production
+          - preview
+          - production
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 🏗 Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: 🏗 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - name: 📦 Install dependencies
-      run: npm ci
-    
-    - name: 🩺 Run Expo Doctor
-      run: npx expo-doctor
-    
-    - name: 🏗 Setup Expo and EAS
-      uses: expo/expo-github-action@v8
-      with:
-        expo-version: latest
-        eas-version: latest
-        token: ${{ secrets.EXPO_TOKEN }}
-    
-    - name: ⚙️ Create EAS configuration
-      run: |
-        # Create eas.json if it doesn't exist
-        if [ ! -f "eas.json" ]; then
-          cat > eas.json << 'EOF'
-        {
-          "cli": {
-            "version": ">= 5.0.0"
-          },
-          "build": {
-            "development": {
-              "developmentClient": true,
-              "distribution": "internal"
-            },
-            "preview": {
-              "distribution": "internal",
-              "ios": {
-                "simulator": true
-              }
-            },
-            "production": {
-              "autoIncrement": true
-            }
-          },
-          "submit": {
-            "production": {}
-          }
-        }
-        EOF
-          echo "✅ Created eas.json configuration"
-        fi
-    
-    - name: 🔧 Configure app for build
-      run: |
-        # Update app.json for EAS build
-        node -e "
-          const fs = require('fs');
-          const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-          
-          // Ensure required fields for EAS build
-          if (!appJson.expo.slug) {
-            appJson.expo.slug = 'sc2-mobile-app';
-          }
-          
-          if (!appJson.expo.owner) {
-            appJson.expo.owner = process.env.EXPO_USERNAME || 'badger-solar-racing';
-          }
-          
-          // Set version based on git tag or default
-          const version = process.env.GITHUB_REF_NAME?.replace('v', '') || '1.0.0';
-          appJson.expo.version = version;
-          
-          // Platform specific configurations
-          if (!appJson.expo.ios) {
-            appJson.expo.ios = {};
-          }
-          appJson.expo.ios.bundleIdentifier = 'com.badgersolar.sc2telemetry';
-          
-          if (!appJson.expo.android) {
-            appJson.expo.android = {};
-          }
-          appJson.expo.android.package = 'com.badgersolar.sc2telemetry';
-          
-          fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
-          console.log('✅ App configuration updated for EAS build');
-        "
-    
-    - name: 🚀 Build Android (Preview)
-      if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '' }}
-      run: |
-        profile="${{ github.event.inputs.profile || 'preview' }}"
-        echo "Building Android with profile: $profile"
-        eas build --platform android --profile $profile --non-interactive
-    
-    - name: 🚀 Build iOS (Preview)
-      if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '' }}
-      run: |
-        profile="${{ github.event.inputs.profile || 'preview' }}"
-        echo "Building iOS with profile: $profile"
-        eas build --platform ios --profile $profile --non-interactive
-    
-    - name: 📱 Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build-logs
-        path: |
-          eas-build-*.log
-          build-*.log
-        retention-days: 30
-    
-    - name: 📊 Build summary
-      run: |
-        echo "🎉 EAS Build completed!"
-        echo "Platform: ${{ github.event.inputs.platform || 'all' }}"
-        echo "Profile: ${{ github.event.inputs.profile || 'preview' }}"
-        echo "Commit: ${{ github.sha }}"
-        echo "Branch: ${{ github.ref_name }}"
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗 Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🩺 Run Expo Doctor
+        run: npx expo-doctor
+
+      - name: 🚀 Start build
+        run: |
+          eas build --platform ${{ github.event.inputs.platform }} --profile ${{ github.event.inputs.profile }} --non-interactive

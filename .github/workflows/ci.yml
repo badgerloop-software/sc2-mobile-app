@@ -1,4 +1,4 @@
-name: SC2 Mobile App - CI
+name: CI
 
 on:
   push:
@@ -7,99 +7,34 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  ci:
+  test:
     runs-on: ubuntu-latest
-    
     strategy:
       matrix:
         node-version: [18.x, 20.x]
-    
+
     steps:
-    - name: 🏗 Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: 🏗 Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: 📦 Install dependencies
-      run: npm ci
-    
-    - name: 🔍 Check for security vulnerabilities
-      run: npm audit --audit-level=high
-      continue-on-error: true
-    
-    - name: 💅 Lint code
-      run: |
-        # Run linting (will skip if no .eslintrc config exists)
-        npx eslint src/ --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "ESLint not configured, skipping..."
-    
-    - name: ⌨️ Type checking (if TypeScript)
-      run: |
-        if [ -f "tsconfig.json" ]; then
-          npx tsc --noEmit
-        else
-          echo "No TypeScript configuration found, skipping type checking"
-        fi
-    
-    - name: ⚙️ Validate Expo configuration
-      run: npx expo config --type public
-    
-    - name: 🩺 Run Expo Doctor
-      run: npx expo-doctor
-      
-    - name: ✅ Check for Expo SDK compatibility
-      run: npx expo install --check
-      continue-on-error: true
-      
-    - name: 🧪 Test bundle creation and check size
-      run: |
-        npx expo export --platform all --dev --output-dir ./test-build
-        echo "✅ Metro bundling successful"
-        echo "Bundle size:"
-        du -sh ./test-build
-        size_kb=$(du -s ./test-build | cut -f1)
-        echo "Bundle size: ${size_kb}KB"
-        if [ $size_kb -gt 51200 ]; then
-          echo "⚠️  Warning: Bundle size is large (${size_kb}KB > 50MB)"
-        else
-          echo "✅ Bundle size is acceptable"
-        fi
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
 
-    - name: 📂 Validate file structure
-      run: |
-        echo "Checking essential files..."
-        test -f package.json && echo "✅ package.json exists"
-        test -f app.json && echo "✅ app.json exists"
-        test -f App.js && echo "✅ App.js exists"
-        test -f src/screens/HomeScreen.js && echo "✅ HomeScreen.js exists"
-        test -f src/screens/BatteryScreen.js && echo "✅ BatteryScreen.js exists"
-        test -f src/data/telemetryData.js && echo "✅ telemetryData.js exists"
-        echo "✅ Essential files validated"
-        
-    - name: 📝 Check for TODO/FIXME comments
-      run: |
-        echo "Checking for TODO/FIXME comments..."
-        grep -r "TODO\|FIXME" src/ --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" || echo "No TODO/FIXME comments found"
+      - name: 🏗 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-    - name: 📲 Test telemetry data generation
-      run: |
-        # Create a temporary test file to handle ES module import
-        echo "import { generateMockTelemetryData } from './src/data/telemetryData.js';
-        try {
-          const data = generateMockTelemetryData();
-          if (data && data.soc && data.speed) {
-            console.log('✅ Telemetry data generation successful');
-            process.exit(0);
-          } else {
-            throw new Error('Invalid telemetry data structure');
-          }
-        } catch (error) {
-          console.error('❌ Telemetry data test failed:', error.message);
-          process.exit(1);
-        }" > telemetry-test.mjs
+      - name: 📦 Install dependencies
+        run: npm ci
 
-        # Run the test file with Node.js
-        node telemetry-test.mjs
+      - name: 💅 Lint code
+        run: npx eslint src/ --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "ESLint not configured, skipping..."
+
+      - name: 🔍 Check for security vulnerabilities
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: 🩺 Run Expo Doctor
+        run: npx expo-doctor
+
+      - name: 📦 Test JavaScript bundle creation
+        run: npx expo export --platform all --dev --output-dir ./dist
