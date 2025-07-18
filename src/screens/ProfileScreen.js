@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
@@ -19,8 +20,8 @@ const ProfileScreen = () => {
   const [biometricAuth, setBiometricAuth] = useState(false);
 
   const profileData = {
-    name: 'John Pork',
-    email: 'john.pork@email.com',
+    name: 'Bucky Badger',
+    email: 'bucky.badger@email.com',
     phone: '+1 (555) 123-4567',
     memberSince: '2023',
     totalMiles: '15,248',
@@ -61,9 +62,9 @@ const ProfileScreen = () => {
     },
     {
       id: 'about',
-      title: 'About Tesla',
+      title: 'About Badger Solar Racing',
       icon: 'information-circle-outline',
-      onPress: () => Alert.alert('About Tesla', 'About Tesla information would open here'),
+      onPress: () => Linking.openURL('https://badgersolarracing.org/'),
     },
   ];
 
@@ -87,7 +88,7 @@ const ProfileScreen = () => {
       
       <Text style={styles.profileName}>{profileData.name}</Text>
       <Text style={styles.profileEmail}>{profileData.email}</Text>
-      <Text style={styles.memberSince}>Tesla Owner since {profileData.memberSince}</Text>
+      <Text style={styles.memberSince}>Solar Car Owner since {profileData.memberSince}</Text>
       
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
@@ -206,7 +207,7 @@ const ProfileScreen = () => {
         {renderPreferencesSection()}
         
         <View style={styles.appVersion}>
-          <Text style={styles.appVersionText}>Tesla Mobile App v4.28.0</Text>
+          <Text style={styles.appVersionText}>BSR App v1.0.0</Text>
         </View>
         
         {renderSignOutButton()}

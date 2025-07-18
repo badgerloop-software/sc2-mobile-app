@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import { PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,56 +31,179 @@ import LocationWeatherDisplay from '../components/LocationWeatherDisplay';
 
 const { width, height } = Dimensions.get('window');
 
-// Solar Car Model Component
-const SolarCarModel = ({ telemetryData }) => {
-  // Check for critical alerts
-  const hasCriticalAlert = telemetryData && Object.keys(telemetryData).some(key => {
-    // Check safety systems for critical alerts
-    if (key.includes('eStop') || key.includes('crash') || key.includes('fault')) {
-      return telemetryData[key] === true;
-    }
-    return false;
-  });
+// // Solar Car Model Component
+// const SolarCarModel = ({ telemetryData }) => {
+//   // Check for critical alerts
+//   const hasCriticalAlert = telemetryData && Object.keys(telemetryData).some(key => {
+//     // Check safety systems for critical alerts
+//     if (key.includes('eStop') || key.includes('crash') || key.includes('fault')) {
+//       return telemetryData[key] === true;
+//     }
+//     return false;
+//   });
 
-  const batteryLevel = telemetryData?.soc || 50;
-  const speed = telemetryData?.speed || 0;
+//   const batteryLevel = telemetryData?.soc || 50;
+//   const speed = telemetryData?.speed || 0;
+
+//   return (
+//     <View style={styles.solarCarContainer}>
+//       <BlurView intensity={20} style={styles.blur}>
+//         <View style={styles.content}>
+//           {/* 3D Model Placeholder */}
+//           <View style={styles.modelContainer}>
+//           <View style={styles.carIconContainer}>
+//             <LinearGradient
+//               colors={hasCriticalAlert ? ['#FF4757', '#FF6B6B'] : ['#C9302C', '#FF6B6B']}
+//               style={styles.carIconGradient}
+//             >
+//               <Ionicons name="car-sport" size={60} color="white" />
+//             </LinearGradient>
+//           </View>
+
+//           {/* Critical Alert Warning */}
+//           {hasCriticalAlert && (
+//             <View style={styles.criticalAlertWarning}>
+//               <Ionicons name="warning" size={20} color="#EF4444" />
+//             </View>
+//           )}
+
+//           <Text style={styles.modelStatus}>Solar Car 3D Model Ready</Text>
+//           <Text style={styles.modelSubtitle}>
+//             Drop your <Text style={styles.filename}>solar-car.glb</Text> file in:
+//           </Text>
+//           <Text style={styles.path}>src/assets/models/</Text>
+//         </View>
+
+//         {/* 3D Ready Indicator */}
+//         <View style={styles.readyIndicator}>
+//           <Ionicons name="cube" size={16} color="white" />
+//           <Text style={styles.readyText}>3D Ready</Text>
+//         </View>
+//       </View>
+//       </BlurView>
+//     </View>
+//   );
+// };
+
+import { GLView } from 'expo-gl';
+import { Renderer } from 'expo-three';
+import * as THREE from 'three';
+import { Asset } from 'expo-asset';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+
+const SolarCarModel = ({ setScrollEnabled }) => {
+  const modelRef = useRef(null);
+  const lastPanX = useRef(0);
+  const lastPanY = useRef(0);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        lastPanX.current = 0;
+        lastPanY.current = 0;
+        setScrollEnabled && setScrollEnabled(false);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (modelRef.current) {
+          // Horizontal pan controls Y rotation, vertical pan controls X rotation
+          const deltaX = gestureState.dx - lastPanX.current;
+          const deltaY = gestureState.dy - lastPanY.current;
+          modelRef.current.rotation.y += deltaX * 0.01;
+          modelRef.current.rotation.x += deltaY * 0.01;
+          // Clamp X rotation to avoid flipping
+          modelRef.current.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, modelRef.current.rotation.x));
+          lastPanX.current = gestureState.dx;
+          lastPanY.current = gestureState.dy;
+        }
+      },
+      onPanResponderRelease: () => {
+        lastPanX.current = 0;
+        lastPanY.current = 0;
+        setScrollEnabled && setScrollEnabled(true);
+      },
+      onPanResponderTerminate: () => {
+        setScrollEnabled && setScrollEnabled(true);
+      },
+    })
+  ).current;
+
+  const onContextCreate = async (gl) => {
+    const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    camera.position.z = 8; // Zoom out further
+
+    const renderer = new Renderer({ gl });
+    renderer.setSize(width, height);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+    const PointLight = new THREE.PointLight(0xffffff, 0.5);
+    PointLight.position.set(1, 1, 1);
+    scene.add(PointLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 10, 7.5);
+    scene.add(directionalLight);
+
+    // Load model
+    const asset = Asset.fromModule(require('../assets/models/race-car.glb'));
+    await asset.downloadAsync();
+    const loader = new GLTFLoader();
+    loader.load(
+      asset.localUri || asset.uri,
+      (gltf) => {
+        const model = gltf.scene;
+        // Color wheels black, windows and badge grey, body red
+        model.traverse((child) => {
+          if (child.isMesh) {
+            const name = (child.name || '').toLowerCase();
+            const matName = (child.material?.name || '').toLowerCase();
+            if (
+              name.includes('wheel') || name.includes('tire') ||
+              matName.includes('wheel') || matName.includes('tire')
+            ) {
+              // Wheels
+              child.material = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            } else if (
+              name.includes('window') || matName.includes('window') ||
+              name.includes('glass') || matName.includes('glass') ||
+              name.includes('windshield') || matName.includes('windshield') ||
+              name.includes('badge') || matName.includes('badge')
+            ) {
+              // Windows and badge
+              child.material = new THREE.MeshStandardMaterial({ color: 0x888888 });
+            } else {
+              // Body
+              child.material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            }
+          }
+        });
+        // Set initial rotation to face forward
+        model.rotation.set(0, 0, 0);
+        // Move the model down a little
+        model.position.y = -0.8;
+        modelRef.current = model;
+        scene.add(model);
+      }
+    );
+
+    // Animation loop
+    const render = () => {
+      requestAnimationFrame(render);
+      renderer.render(scene, camera);
+      gl.endFrameEXP();
+    };
+    render();
+  };
 
   return (
-    <View style={styles.solarCarContainer}>
-      <BlurView intensity={20} style={styles.blur}>
-        <View style={styles.content}>
-          {/* 3D Model Placeholder */}
-          <View style={styles.modelContainer}>
-          <View style={styles.carIconContainer}>
-            <LinearGradient
-              colors={hasCriticalAlert ? ['#FF4757', '#FF6B6B'] : ['#C9302C', '#FF6B6B']}
-              style={styles.carIconGradient}
-            >
-              <Ionicons name="car-sport" size={60} color="white" />
-            </LinearGradient>
-          </View>
-
-          {/* Critical Alert Warning */}
-          {hasCriticalAlert && (
-            <View style={styles.criticalAlertWarning}>
-              <Ionicons name="warning" size={20} color="#EF4444" />
-            </View>
-          )}
-
-          <Text style={styles.modelStatus}>Solar Car 3D Model Ready</Text>
-          <Text style={styles.modelSubtitle}>
-            Drop your <Text style={styles.filename}>solar-car.glb</Text> file in:
-          </Text>
-          <Text style={styles.path}>src/assets/models/</Text>
-        </View>
-
-        {/* 3D Ready Indicator */}
-        <View style={styles.readyIndicator}>
-          <Ionicons name="cube" size={16} color="white" />
-          <Text style={styles.readyText}>3D Ready</Text>
-        </View>
-      </View>
-      </BlurView>
+    <View style={{ flex: 1, width: '100%', height: 250, backgroundColor: 'transparent' }} {...panResponder.panHandlers}>
+      <GLView
+        style={{ flex: 1, width: '100%', height: 250, backgroundColor: 'transparent' }}
+        onContextCreate={onContextCreate}
+      />
     </View>
   );
 };
@@ -292,6 +416,7 @@ export default function HomeScreen({ navigation }) {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [useImperialUnits, setUseImperialUnits] = useState(true); // Global unit preference
   const [locationName, setLocationName] = useState('Madison, WI'); // Default location name
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // Convert temperature from Celsius to Fahrenheit
   const convertTemperature = (celsius) => {
@@ -353,20 +478,16 @@ export default function HomeScreen({ navigation }) {
           contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 20) }]}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
         >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
                 <View style={styles.brandContainer}>
-                  <Image 
-                    source={require('../../assets/logo.png')} 
-                    style={styles.brandLogo}
-                    resizeMode="contain"
-                  />
                   <Text style={styles.greeting}>Badger Solar Racing</Text>
                 </View>
-                <Text style={styles.vehicleName}>Solar Car 2 - Live Telemetry</Text>
+                <Text style={styles.vehicleName}>Solar Car 2</Text>
                 <Text style={styles.lastUpdate}>
                   Last Update: {lastUpdate.toLocaleTimeString()}
                 </Text>
@@ -379,7 +500,7 @@ export default function HomeScreen({ navigation }) {
 
           {/* Solar Car Visualization */}
           <View style={styles.carContainer}>
-            <SolarCarModel telemetryData={telemetryData} />
+            <SolarCarModel telemetryData={telemetryData} setScrollEnabled={setScrollEnabled} />
           </View>
 
           {/* Combined Location & Weather Display */}
@@ -506,7 +627,8 @@ const styles = StyleSheet.create({
   },
   vehicleName: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 21,
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   lastUpdate: {
@@ -580,7 +702,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#000000',
+    backgroundColor: 'rgba(0,0,0,0.15)', // Even more transparent for blending
   },
   solarCarContainer: {
     flex: 1,
